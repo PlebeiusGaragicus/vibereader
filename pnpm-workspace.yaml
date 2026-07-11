@@ -1,0 +1,18 @@
+# pnpm settings (pnpm >= 10 reads these here, not from package.json's "pnpm" field)
+packages:
+  - cyphertap
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@tailwindcss/oxide': true
+  # epubjs transitives — postinstall scripts are banners only, nothing to build
+  core-js: false
+  es5-ext: false
+  esbuild: true
+  sharp: true
+
+# Keep identical to cyphertap/pnpm-workspace.yaml — ndk-cache-dexie and
+# ndk-svelte pin @nostr-dev-kit/ndk exactly, which can give the app two
+# structurally-incompatible copies of NDK. Force the single version.
+overrides:
+  '@nostr-dev-kit/ndk': 2.15.2

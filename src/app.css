@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+/* App chrome follows the user's light/dark preference (mode-watcher toggles
+   .dark on <html>); the reading surface has its own theme (light/dark/sepia)
+   applied inside the epub iframe via rendition.themes — the two are
+   deliberately independent. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+	height: 100%;
+}
+
+body {
+	@apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+}
+
+:focus-visible {
+	outline: 2px solid --alpha(var(--color-amber-500) / 60%);
+	outline-offset: 1px;
+}

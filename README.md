@@ -18,4 +18,26 @@ What that means here:
 - **AI is integrated, inference is sovereign** — bring-your-own LLM endpoint
   is always a first-class path.
 
-Status: fresh start — nothing here yet.
+Docs (philosophy, architecture, the nostr event model): `docs/`, published at
+`/docs/` on the deployed site.
+
+## Clone & run
+
+```sh
+git clone --recurse-submodules https://github.com/PlebeiusGaragicus/VibeReader
+cd VibeReader
+pnpm install
+pnpm dev
+```
+
+The [cyphertap](https://github.com/PlebeiusGaragicus/cyphertap) login widget
+is a git submodule consumed from source — a plain clone leaves `cyphertap/`
+empty and `pnpm install` fails resolving `workspace:*`.
+
+```sh
+pnpm check                          # svelte-check
+BASE_PATH=/VibeReader pnpm build && pnpm preview   # what CI/Pages runs
+```
+
+Status: scaffold live (identity, per-npub storage, docs site); reader core →
+AI chat → explicit sync landing in that order.

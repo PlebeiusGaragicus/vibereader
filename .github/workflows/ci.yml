@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # Frozen lockfile intentionally fails on unsynced submodule bumps:
+      # after bumping cyphertap, run `pnpm install` and commit the lockfile.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Build (with Pages base path)
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+        run: pnpm build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r docs-requirements.txt
+      - run: mkdocs build --strict

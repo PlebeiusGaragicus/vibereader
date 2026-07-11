@@ -1,0 +1,19 @@
+<script lang="ts">
+	// cyphertap's theme CSS must be imported explicitly — the library's own
+	// side-effect CSS import gets tree-shaken out of consumer production builds.
+	import 'cyphertap/styles.css';
+	import '../app.css';
+	import '../theme.css';
+	import { ModeWatcher, mode } from 'mode-watcher';
+	import { Toaster } from 'svelte-sonner';
+
+	let { children } = $props();
+</script>
+
+<!-- App chrome follows system/user light-dark preference. mode-watcher is
+     shared state with cyphertap's widget (same module instance under pnpm),
+     so its Dark Mode toggle drives the whole app. -->
+<ModeWatcher />
+<Toaster richColors position="top-right" theme={mode.current === 'dark' ? 'dark' : 'light'} />
+
+{@render children()}

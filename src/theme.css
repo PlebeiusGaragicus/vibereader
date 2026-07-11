@@ -1,0 +1,48 @@
+/* App theme overrides for the cyphertap widget — see cyphertap/docs/THEMING.md.
+   :root:root beats the library's :root (0-2-0 vs 0-1-0) regardless of Vite
+   CSS order; :root:root.dark beats its .dark the same way. VibeReader chrome
+   is zinc/amber in both modes. */
+:root:root {
+	--radius: 0.625rem;
+	--background: oklch(0.985 0 0); /* zinc-50 */
+	--foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.141 0.005 285.823);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.141 0.005 285.823);
+	--primary: oklch(0.666 0.179 58.318); /* amber-600 */
+	--primary-foreground: oklch(0.985 0 0);
+	--secondary: oklch(0.92 0.004 286.32); /* zinc-200 */
+	--secondary-foreground: oklch(0.141 0.005 285.823);
+	--muted: oklch(0.92 0.004 286.32);
+	--muted-foreground: oklch(0.442 0.017 285.786); /* zinc-600 */
+	--accent: oklch(0.92 0.004 286.32);
+	--accent-foreground: oklch(0.141 0.005 285.823);
+	--destructive: oklch(0.577 0.245 27.325); /* red-600 */
+	--destructive-foreground: oklch(0.985 0 0);
+	--border: oklch(0 0 0 / 12%);
+	--input: oklch(0 0 0 / 16%);
+	--ring: oklch(0.666 0.179 58.318 / 60%);
+}
+
+:root:root.dark {
+	--background: oklch(0.141 0.005 285.823); /* zinc-950 */
+	--foreground: oklch(0.985 0 0); /* zinc-50 */
+	--card: oklch(0.21 0.006 285.885); /* zinc-900 */
+	--card-foreground: oklch(0.985 0 0);
+	--popover: oklch(0.21 0.006 285.885);
+	--popover-foreground: oklch(0.985 0 0);
+	--primary: oklch(0.769 0.188 70.08); /* amber-500 */
+	--primary-foreground: oklch(0.141 0.005 285.823);
+	--secondary: oklch(0.274 0.006 285.906); /* zinc-800 */
+	--secondary-foreground: oklch(0.985 0 0);
+	--muted: oklch(0.274 0.006 285.906);
+	--muted-foreground: oklch(0.705 0.015 286.067); /* zinc-400 */
+	--accent: oklch(0.274 0.006 285.906);
+	--accent-foreground: oklch(0.985 0 0);
+	--destructive: oklch(0.637 0.237 25.331); /* red-500 */
+	--destructive-foreground: oklch(0.985 0 0);
+	--border: oklch(1 0 0 / 12%);
+	--input: oklch(1 0 0 / 16%);
+	--ring: oklch(0.769 0.188 70.08 / 60%);
+}
