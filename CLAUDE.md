@@ -86,10 +86,10 @@ Keep test EPUBs out of git.
 
 - **A (done)** — scaffold, per-npub DB/session skeleton, docs site (MkDocs →
   `/docs/` on Pages), CLAUDE.md, philosophy + event-model contract.
-- **B** — reader core: import (sha256 dedup), epub service, reader UI (TOC,
+- **B (done)** — reader core: import (sha256 dedup), epub service, reader UI (TOC,
   themes, progress resume), unified annotations (context menu + spine-sorted
   sidebar).
-- **C** — AI chat on selection (BYO endpoint, streaming + fallback) +
+- **C (done)** — AI chat on selection (BYO endpoint, streaming + fallback) +
   `// PAYMENTS:` seam.
 - **D** — explicit sync: 30101–30104 codecs, "Back up"/"Sync" UI, Blossom
   upload/restore, annotation sharing (plaintext 30104 + optional 9802
