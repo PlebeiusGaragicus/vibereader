@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, Highlighter, List, Type } from '@lucide/svelte';
+	import { ArrowLeft, Highlighter, List, MessageSquare, Type } from '@lucide/svelte';
 	import { reader } from '$lib/stores/reader.svelte.js';
 	import { ui } from '$lib/stores/ui.svelte.js';
 	import DisplaySettings from './DisplaySettings.svelte';
@@ -61,5 +61,14 @@
 		onclick={() => (ui.annotationsOpen = !ui.annotationsOpen)}
 	>
 		<Highlighter class="size-4" />
+	</button>
+	<button
+		class="rounded p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 {ui.chatOpen
+			? 'text-amber-600 dark:text-amber-500'
+			: ''}"
+		title="Chat"
+		onclick={() => (ui.chatOpen = !ui.chatOpen)}
+	>
+		<MessageSquare class="size-4" />
 	</button>
 </div>

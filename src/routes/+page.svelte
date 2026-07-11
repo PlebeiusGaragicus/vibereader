@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { Cyphertap, cyphertap } from 'cyphertap';
-	import { BookOpen } from '@lucide/svelte';
+	import { BookOpen, Settings } from '@lucide/svelte';
+	import SettingsPanel from '$lib/components/SettingsPanel.svelte';
 	import LibraryView from '$lib/components/library/LibraryView.svelte';
 	import ReaderView from '$lib/components/reader/ReaderView.svelte';
 	import { RELAYS } from '$lib/relays.js';
@@ -33,6 +34,13 @@
 				>
 					Docs
 				</a>
+				<button
+					class="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+					title="Settings"
+					onclick={() => (ui.settingsOpen = true)}
+				>
+					<Settings class="size-4" />
+				</button>
 				<Cyphertap relays={RELAYS} />
 			</div>
 		</header>
@@ -55,3 +63,7 @@
 		{/if}
 	</main>
 </div>
+
+{#if ui.settingsOpen}
+	<SettingsPanel />
+{/if}

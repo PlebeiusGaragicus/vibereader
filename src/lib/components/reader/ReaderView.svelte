@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { reader } from '$lib/stores/reader.svelte.js';
 	import { ui } from '$lib/stores/ui.svelte.js';
+	import ChatPanel from '$lib/components/chat/ChatPanel.svelte';
 	import AnnotationSidebar from './AnnotationSidebar.svelte';
 	import EpubViewer from './EpubViewer.svelte';
 	import ReaderToolbar from './ReaderToolbar.svelte';
@@ -24,6 +25,9 @@
 		</div>
 		{#if ui.annotationsOpen}
 			<AnnotationSidebar />
+		{/if}
+		{#if ui.chatOpen}
+			<ChatPanel />
 		{/if}
 	</div>
 </div>

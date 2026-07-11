@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Copy, Trash2 } from '@lucide/svelte';
+	import { Copy, MessageSquare, Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import type { HighlightColor } from '$lib/db/types.js';
 	import { HIGHLIGHT_COLORS, clearSelection } from '$lib/epub/service.js';
 	import { annotations } from '$lib/stores/annotations.svelte.js';
+	import { chat } from '$lib/stores/chat.svelte.js';
 	import { selection } from '$lib/stores/selection.svelte.js';
 
 	const COLORS = Object.keys(HIGHLIGHT_COLORS) as HighlightColor[];
@@ -99,6 +100,21 @@
 			{/each}
 		</div>
 		<div class="flex gap-1">
+			<button
+				class="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+				title="Chat about this"
+				onclick={() => {
+					const context = editing
+						? { cfiRange: editing.cfiRange, quote: editing.quote }
+						: selection.active
+							? { cfiRange: selection.active.cfiRange, quote: selection.active.text }
+							: null;
+					if (context) chat.startFromSelection(context);
+					close();
+				}}
+			>
+				<MessageSquare class="size-4" />
+			</button>
 			<button
 				class="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
 				title="Copy text"

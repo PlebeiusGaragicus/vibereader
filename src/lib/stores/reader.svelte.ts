@@ -8,6 +8,7 @@ import * as epub from '$lib/epub/service.js';
 import type { TocEntry } from '$lib/epub/service.js';
 import { debounce } from '$lib/utils.js';
 import { annotations } from './annotations.svelte.js';
+import { chat } from './chat.svelte.js';
 import { library } from './library.svelte.js';
 import { selection } from './selection.svelte.js';
 import { settingsStore } from './settings.svelte.js';
@@ -39,6 +40,7 @@ async function open(record: Book): Promise<void> {
 	await epub.openBook(record.sha256);
 	toc = epub.getToc();
 	await annotations.load(record.sha256);
+	await chat.load(record);
 
 	epub.onFirstRendered(() => annotations.applyToRendition());
 	epub.onRelocated((loc) => {
@@ -86,6 +88,7 @@ function close(): void {
 	}
 	epub.destroy();
 	annotations.reset();
+	chat.reset();
 	selection.clear();
 	book = null;
 	toc = [];
