@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BookOpen, CloudDownload, CloudUpload, Info, Loader2, Trash2 } from '@lucide/svelte';
+	import { CloudDownload, CloudUpload, Ellipsis, Info, Loader2, Trash2 } from '@lucide/svelte';
 	import type { Book } from '$lib/db/types.js';
 	import { library } from '$lib/stores/library.svelte.js';
 	import { sync } from '$lib/stores/sync.svelte.js';
@@ -8,6 +8,7 @@
 	let { book }: { book: Book } = $props();
 
 	let confirming = $state<'delete' | 'backup' | null>(null);
+	let menuOpen = $state(false);
 
 	const cover = $derived(library.coverUrls[book.sha256]);
 	const pct = $derived(library.progressBySha[book.sha256]);
@@ -49,6 +50,85 @@
 			<div class="truncate text-xs text-zinc-500">{book.creator}</div>
 		</div>
 	</button>
+
+	<!-- One entry point for card actions, mouse and touch alike: always visible
+	     on coarse pointers (no hover to reveal it), hover/focus-revealed on fine
+	     pointers to keep the grid quiet. -->
+	<button
+		class="absolute top-1.5 right-1.5 z-10 rounded bg-zinc-950/60 p-1.5 text-zinc-200 transition-opacity hover:text-white pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100 {menuOpen || busy
+			? 'pointer-fine:opacity-100'
+			: ''}"
+		title="Book actions"
+		onclick={(e) => {
+			e.stopPropagation();
+			menuOpen = !menuOpen;
+		}}
+	>
+		{#if busy}
+			<Loader2 class="size-3.5 animate-spin" />
+		{:else}
+			<Ellipsis class="size-3.5" />
+		{/if}
+	</button>
+
+	{#if menuOpen}
+		<div
+			class="fixed inset-0 z-20"
+			role="presentation"
+			onmousedown={() => (menuOpen = false)}
+		></div>
+		<div
+			class="absolute top-8 right-1.5 z-30 w-40 overflow-hidden rounded-lg border border-zinc-200 bg-white py-1 text-sm shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+			role="menu"
+		>
+			<button
+				class="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+				role="menuitem"
+				onclick={() => {
+					menuOpen = false;
+					ui.infoSha = book.sha256;
+				}}
+			>
+				<Info class="size-3.5 text-zinc-500" /> Info
+			</button>
+			{#if !busy}
+				{#if missing}
+					<button
+						class="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+						role="menuitem"
+						onclick={() => {
+							menuOpen = false;
+							void sync.restoreBook(book.sha256);
+						}}
+					>
+						<CloudDownload class="size-3.5 text-zinc-500" /> Restore file
+					</button>
+				{:else}
+					<button
+						class="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+						role="menuitem"
+						onclick={() => {
+							menuOpen = false;
+							confirming = 'backup';
+						}}
+					>
+						<CloudUpload class="size-3.5 {backedUp ? 'text-emerald-500' : 'text-zinc-500'}" />
+						{backedUp ? 'Back up again' : 'Back up file'}
+					</button>
+				{/if}
+			{/if}
+			<button
+				class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-red-600 hover:bg-zinc-100 dark:text-red-400 dark:hover:bg-zinc-800"
+				role="menuitem"
+				onclick={() => {
+					menuOpen = false;
+					confirming = 'delete';
+				}}
+			>
+				<Trash2 class="size-3.5" /> Delete
+			</button>
+		</div>
+	{/if}
 
 	{#if confirming === 'delete'}
 		<div
@@ -97,58 +177,6 @@
 					Cancel
 				</button>
 			</div>
-		</div>
-	{:else}
-		<div class="absolute top-1.5 right-1.5 z-10 hidden gap-1 group-hover:flex">
-			<button
-				class="rounded bg-zinc-950/60 p-1.5 text-zinc-200 hover:text-white"
-				title="Book info"
-				onclick={(e) => {
-					e.stopPropagation();
-					ui.infoSha = book.sha256;
-				}}
-			>
-				<Info class="size-3.5" />
-			</button>
-			{#if busy}
-				<span class="rounded bg-zinc-950/60 p-1.5 text-zinc-200">
-					<Loader2 class="size-3.5 animate-spin" />
-				</span>
-			{:else if missing}
-				<button
-					class="rounded bg-zinc-950/60 p-1.5 text-zinc-200 hover:text-white"
-					title="Restore file from Blossom"
-					onclick={(e) => {
-						e.stopPropagation();
-						void sync.restoreBook(book.sha256);
-					}}
-				>
-					<CloudDownload class="size-3.5" />
-				</button>
-			{:else}
-				<button
-					class="rounded bg-zinc-950/60 p-1.5 {backedUp
-						? 'text-emerald-400'
-						: 'text-zinc-200 hover:text-white'}"
-					title={backedUp ? `Backed up (${book.blossom?.servers.length})` : 'Back up file to Blossom'}
-					onclick={(e) => {
-						e.stopPropagation();
-						if (!backedUp) confirming = 'backup';
-					}}
-				>
-					<CloudUpload class="size-3.5" />
-				</button>
-			{/if}
-			<button
-				class="rounded bg-zinc-950/60 p-1.5 text-zinc-200 hover:text-white"
-				title="Delete book"
-				onclick={(e) => {
-					e.stopPropagation();
-					confirming = 'delete';
-				}}
-			>
-				<Trash2 class="size-3.5" />
-			</button>
 		</div>
 	{/if}
 </div>
