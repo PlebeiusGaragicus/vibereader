@@ -139,13 +139,81 @@ does NOT carry over from the Safari-tab session, so a user who installs the
 app starts with an empty library. Relay sync + Blossom restore is the
 built-in answer (log in, Sync, restore) — the install flow should say so.
 
-## 4. Self-hosted Blossom server (candidate)
+## 4. Self-hosted Blossom server (blossom.abvstudio.net)
 
-**Status: idea, 2026-07-12.** Surfaced during Phase D: of seven public
-Blossom servers probed, only nostr.download is both browser-CORS-open and
-accepts `application/epub+zip` — the public Blossom network is media-CDN
-shaped and hostile to arbitrary blobs. A homelab Blossom server
-(blossom.abvstudio.net) would make book backup durable and policy-free:
-khatru's embedded Blossom package (`khatru/blossom/`) is the natural build,
-and the same origin/pubkey policies from proposal 1 apply. Pairs well with
-the relay hardening work.
+**Status: proposed with concrete plan, 2026-07-12** (was: idea). Surfaced
+during Phase D: of seven public Blossom servers probed, only nostr.download
+is both browser-CORS-open and accepts `application/epub+zip` — the public
+Blossom network is media-CDN shaped and hostile to arbitrary blobs. And
+nostr.download prunes: a book whose 30101 synced fine 404'd on restore
+because its bytes were never (or no longer) there. A homelab server makes
+book backup durable and policy-free.
+
+**Build choice: `blossom-server/`** (hzrd149, canonical standalone
+implementation — now in the reference collection). Deno + Docker Compose,
+one YAML config, CORS open by default, BUD-01/02/04/05/06/08/09/11. It
+solves both public-network failures directly: no CORS wall, and the MIME
+retention rules double as an upload allowlist we control. The alternative —
+khatru's embedded `blossom` package inside a future custom relay binary
+(proposal 1 Layer 3) — was set aside: it's a Go build we'd own, whereas
+blossom-server is deploy-and-configure today. Revisit only if the khatru
+migration happens anyway.
+
+### Deployment sketch
+
+`git clone hzrd149/blossom-server && cp config.example.yml config.yml`,
+then `docker compose up -d` behind the existing reverse proxy. The config
+that matters (everything else can stay default):
+
+```yaml
+publicDomain: "blossom.abvstudio.net"   # bare hostname, no scheme
+
+upload:
+  enabled: true
+  requireAuth: true            # BUD-11 kind-24242 events (client already sends them)
+  # Closed server: uploader's pubkey must appear in a rule below.
+  requirePubkeyInRule: true
+
+storage:
+  backend: local
+  # Rules are ordered; first match wins. They are ALSO the upload allowlist
+  # (unmatched MIME → 415). `expiration` is required and counts time since
+  # last access — "10 years" ≈ never for an active library.
+  rules:
+    - type: "application/epub+zip"
+      expiration: 10 years
+      pubkeys:                 # our npubs (hex) — test accounts + real identities
+        - "<alice-hex>"        # see ../my-projects/.test-accounts.json
+        - "<bob-hex>"
+        - "<carol-hex>"
+    - type: "image/*"          # book covers ride along with backups
+      expiration: 10 years
+      pubkeys: [same list]
+
+list:
+  enabled: true                # GET /list/<pubkey> — handy for a "my blobs" audit
+  requireAuth: true
+  allowListOthers: false
+
+# dashboard: enable ad hoc for operator review; keep off day-to-day
+```
+
+Reverse-proxy notes: raise the body-size cap (EPUBs run tens of MB, e.g.
+`client_max_body_size 200m` in nginx) and pass the Host header through so
+`publicDomain` agrees with blob URLs. The Origin-allowlist hygiene from
+proposal 1 Layer 1 applies here too, with the same caveat (hygiene, not
+auth — `requireAuth` + pubkey rules are the real boundary).
+
+### App-side wiring (no code changes)
+
+Blossom servers are already user-editable in Settings and published as
+kind 10063; backup/restore/probing already speak plain BUD-01/02. Rollout:
+add `https://blossom.abvstudio.net` as the *first* server in Settings
+(uploads go to the first server, per the event model), keep nostr.download
+as a second copy, re-run "Back up" per book, and confirm via the book-info
+dialog's availability probe (added 2026-07-12), which HEADs every
+configured server. One real gotcha to verify at deploy time: the BUD-11
+base64 quirk — deployed servers accept STANDARD base64 auth, not the
+spec's base64url (`blossom.ts` sends standard; nak agrees). Test with
+`nak blossom upload --server https://blossom.abvstudio.net <file>` before
+pointing the app at it.
