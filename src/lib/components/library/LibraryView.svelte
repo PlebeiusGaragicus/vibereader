@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { BookOpen } from '@lucide/svelte';
 	import { library } from '$lib/stores/library.svelte.js';
+	import { ui } from '$lib/stores/ui.svelte.js';
 	import BookCard from './BookCard.svelte';
+	import BookInfoDialog from './BookInfoDialog.svelte';
 	import ImportButton from './ImportButton.svelte';
 
 	let dragging = $state(false);
@@ -47,3 +49,7 @@
 		</div>
 	{/if}
 </div>
+
+{#if ui.infoSha}
+	<BookInfoDialog sha256={ui.infoSha} />
+{/if}

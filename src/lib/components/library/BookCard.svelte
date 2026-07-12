@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { BookOpen, CloudDownload, CloudUpload, Loader2, Trash2 } from '@lucide/svelte';
+	import { BookOpen, CloudDownload, CloudUpload, Info, Loader2, Trash2 } from '@lucide/svelte';
 	import type { Book } from '$lib/db/types.js';
 	import { library } from '$lib/stores/library.svelte.js';
 	import { sync } from '$lib/stores/sync.svelte.js';
+	import { ui } from '$lib/stores/ui.svelte.js';
 
 	let { book }: { book: Book } = $props();
 
@@ -99,6 +100,16 @@
 		</div>
 	{:else}
 		<div class="absolute top-1.5 right-1.5 z-10 hidden gap-1 group-hover:flex">
+			<button
+				class="rounded bg-zinc-950/60 p-1.5 text-zinc-200 hover:text-white"
+				title="Book info"
+				onclick={(e) => {
+					e.stopPropagation();
+					ui.infoSha = book.sha256;
+				}}
+			>
+				<Info class="size-3.5" />
+			</button>
 			{#if busy}
 				<span class="rounded bg-zinc-950/60 p-1.5 text-zinc-200">
 					<Loader2 class="size-3.5 animate-spin" />

@@ -6,6 +6,7 @@ let tocOpen = $state(false);
 let annotationsOpen = $state(false);
 let chatOpen = $state(false);
 let settingsOpen = $state(false);
+let infoSha = $state<string | null>(null);
 
 export const ui = {
 	get view() {
@@ -38,11 +39,18 @@ export const ui = {
 	set settingsOpen(v: boolean) {
 		settingsOpen = v;
 	},
+	get infoSha() {
+		return infoSha;
+	},
+	set infoSha(v: string | null) {
+		infoSha = v;
+	},
 	reset() {
 		view = 'library';
 		tocOpen = false;
 		annotationsOpen = false;
 		chatOpen = false;
 		settingsOpen = false;
+		infoSha = null;
 	}
 };
