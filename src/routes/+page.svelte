@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { Cyphertap, cyphertap } from 'cyphertap';
-	import { BookOpen, Settings } from '@lucide/svelte';
+	import { BookOpen, RefreshCw, Settings } from '@lucide/svelte';
 	import SettingsPanel from '$lib/components/SettingsPanel.svelte';
 	import LibraryView from '$lib/components/library/LibraryView.svelte';
 	import ReaderView from '$lib/components/reader/ReaderView.svelte';
 	import { RELAYS } from '$lib/relays.js';
 	import { library } from '$lib/stores/library.svelte.js';
 	import { session } from '$lib/stores/session.svelte.js';
+	import { sync } from '$lib/stores/sync.svelte.js';
 	import { ui } from '$lib/stores/ui.svelte.js';
 
 	// Bridge cyphertap's identity to the session (and per-npub DB) lifecycle.
@@ -34,6 +35,19 @@
 				>
 					Docs
 				</a>
+				{#if cyphertap.isLoggedIn}
+					<button
+						class="relative rounded p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-800"
+						title={sync.dirty ? 'Sync (unsynced changes)' : 'Sync'}
+						disabled={sync.syncing}
+						onclick={() => void sync.run()}
+					>
+						<RefreshCw class="size-4 {sync.syncing ? 'animate-spin' : ''}" />
+						{#if sync.dirty && !sync.syncing}
+							<span class="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-amber-500"></span>
+						{/if}
+					</button>
+				{/if}
 				<button
 					class="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
 					title="Settings"

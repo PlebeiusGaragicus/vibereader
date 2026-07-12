@@ -83,7 +83,7 @@ Electron build, data that exists only on our infrastructure (we have none).
 | Principle | State |
 |---|---|
 | 1. Web-first static build | ✅ SvelteKit static adapter, GitHub Pages. nsite publishing: later. |
-| 2. Relays as file system | 📝 Contract written ([event model](nostr-event-model.md)); implementation is Phase D. |
+| 2. Relays as file system | ✅ Explicit Sync (state events + tombstones), Blossom backup/restore, annotation sharing — per the [event model](nostr-event-model.md). |
 | 3. Browser primary store | ✅ Per-npub IndexedDB, `storage.persist()` on login. |
 | 4. Keypair identity | ✅ cyphertap login, npub-partitioned DBs. |
 | 5. Bitcoin payments | ⏳ Deliberate seam only. Do not build ahead of it. |

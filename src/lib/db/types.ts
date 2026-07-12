@@ -16,6 +16,8 @@ export interface Book {
 	isbn?: string;
 	description?: string;
 	fileSize: number;
+	/** Blossom servers holding the (raw, public-by-hash) EPUB + cover. */
+	blossom?: { servers: string[]; coverSha256?: string };
 	addedAt: number;
 	updatedAt: number;
 	lastOpenedAt?: number;
@@ -54,14 +56,27 @@ export interface ReadingProgress {
  * color), or both. Maps 1:1 onto kind-30104 event content.
  */
 export interface Annotation {
-	id: string; // `anno-<nanoid>` — the future nostr d-tag
+	id: string; // `anno-<nanoid>` — the nostr d-tag
 	sha256: string;
 	cfiRange: string;
 	quote: string;
 	color?: HighlightColor;
 	note?: string;
+	/** Published as plaintext 30104 with query tags (still editable). */
+	shared?: boolean;
 	createdAt: number;
 	updatedAt: number;
+}
+
+/**
+ * Record of a propagated deletion: keeps local pushes from resurrecting a
+ * record another device deleted, and drives the tombstone events we publish.
+ */
+export interface Tombstone {
+	key: string; // `<kind>:<d-tag>`
+	kind: number;
+	d: string;
+	deletedAt: number;
 }
 
 export interface ChatMessage {

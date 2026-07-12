@@ -79,6 +79,18 @@ Keep test EPUBs out of git.
 - The LLM endpoint must allow browser CORS. Known-good: Anthropic,
   OpenRouter, local llama.cpp/LM Studio/Ollama w/ CORS, and the homelab
   gateway `https://api.abvstudio.net/v1`.
+- Blossom auth: BUD-11 says base64url-no-padding, but deployed servers
+  (nostr.download, nak) require STANDARD base64 — `blossom.ts` follows the
+  ecosystem. Most public Blossom servers are useless for us: primal/v0l
+  block browser CORS on /upload, band/nostrcheck/f7z/24242.io reject
+  `application/epub+zip`. nostr.download is the only working public default
+  (verified 2026-07); self-hosting is the recommended path.
+- The BUD-06 preflight is advisory — only an explicit 413 blocks an upload
+  (nostr.download 400s the HEAD but accepts the PUT).
+- cyphertap's `publishEvent` can surface an async `NDKPublishError`
+  ("0 published, 1 required") as an unhandled rejection when a pool relay
+  rejects — benign: the event lands in cyphertap's unpublished-events cache
+  and retries.
 - Multi-tab is out of scope for v1: two tabs on one DB can clobber
   progress/annotations last-write-wins.
 
@@ -91,6 +103,11 @@ Keep test EPUBs out of git.
   sidebar).
 - **C (done)** — AI chat on selection (BYO endpoint, streaming + fallback) +
   `// PAYMENTS:` seam.
-- **D** — explicit sync: 30101–30104 codecs, "Back up"/"Sync" UI, Blossom
-  upload/restore, annotation sharing (plaintext 30104 + optional 9802
-  export). Design against `docs/nostr-event-model.md`.
+- **D (done)** — explicit sync: 30101–30104 codecs (NIP-44 to self), global
+  "Sync" (naive REQ pull → LWW merge w/ tombstones → push), per-book Blossom
+  backup/restore (raw, public-by-hash, warned), annotation sharing
+  (plaintext 30104 + optional 9802 export). Contract:
+  `docs/nostr-event-model.md`. Verified: two-profile round trip incl.
+  tombstone propagation and Blossom restore.
+- **Next**: payments on the `// PAYMENTS:` seam (ecash-per-request), nsite
+  publishing, mobile polish.

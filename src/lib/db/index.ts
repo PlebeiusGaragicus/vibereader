@@ -6,6 +6,7 @@
 // `setCurrentUser(npub)` must be called (at login) before any other operation.
 
 import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { KIND_ANNOTATION, KIND_BOOK, KIND_PROGRESS } from '$lib/nostr/kinds.js';
 import type {
 	Annotation,
 	Book,
@@ -13,11 +14,12 @@ import type {
 	ChatThread,
 	Cover,
 	LocationsCache,
-	ReadingProgress
+	ReadingProgress,
+	Tombstone
 } from './types.js';
 
 const DB_PREFIX = 'vibereader';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface VibeReaderDB extends DBSchema {
 	books: {
@@ -54,6 +56,10 @@ interface VibeReaderDB extends DBSchema {
 	kv: {
 		key: string;
 		value: { key: string; value: unknown };
+	};
+	tombstones: {
+		key: string; // `<kind>:<d-tag>`
+		value: Tombstone;
 	};
 }
 
@@ -110,6 +116,9 @@ function getDB(): Promise<IDBPDatabase<VibeReaderDB>> {
 
 					db.createObjectStore('kv', { keyPath: 'key' });
 				}
+				if (oldVersion < 2) {
+					db.createObjectStore('tombstones', { keyPath: 'key' });
+				}
 			}
 		});
 	}
@@ -135,18 +144,27 @@ async function saveBook(book: Book): Promise<void> {
 	await (await getDB()).put('books', clone(book));
 }
 
-/** Cascade-delete a book and everything under it in one transaction. */
+/**
+ * Cascade-delete a book and everything under it in one transaction, leaving
+ * tombstones so the deletion propagates on the next sync (never resurrects).
+ */
 async function deleteBookCascade(sha256: string): Promise<void> {
 	const db = await getDB();
 	const tx = db.transaction(
-		['books', 'bookFiles', 'covers', 'locations', 'progress', 'annotations', 'chats'],
+		['books', 'bookFiles', 'covers', 'locations', 'progress', 'annotations', 'chats', 'tombstones'],
 		'readwrite'
 	);
+	const deletedAt = Date.now();
+	const tombstones = tx.objectStore('tombstones');
 
 	for (const store of ['annotations', 'chats'] as const) {
 		const index = tx.objectStore(store).index('by-book');
 		let cursor = await index.openCursor(IDBKeyRange.only(sha256));
 		while (cursor) {
+			if (store === 'annotations') {
+				const d = String(cursor.primaryKey);
+				await tombstones.put({ key: `${KIND_ANNOTATION}:${d}`, kind: KIND_ANNOTATION, d, deletedAt });
+			}
 			await cursor.delete();
 			cursor = await cursor.continue();
 		}
@@ -154,6 +172,9 @@ async function deleteBookCascade(sha256: string): Promise<void> {
 
 	for (const store of ['bookFiles', 'covers', 'locations', 'progress', 'books'] as const) {
 		await tx.objectStore(store).delete(sha256);
+	}
+	for (const kind of [KIND_BOOK, KIND_PROGRESS]) {
+		await tombstones.put({ key: `${kind}:${sha256}`, kind, d: sha256, deletedAt });
 	}
 	await tx.done;
 }
@@ -214,12 +235,36 @@ async function getBookAnnotations(sha256: string): Promise<Annotation[]> {
 	return (await getDB()).getAllFromIndex('annotations', 'by-book', sha256);
 }
 
+async function getAllAnnotations(): Promise<Annotation[]> {
+	return (await getDB()).getAll('annotations');
+}
+
 async function saveAnnotation(annotation: Annotation): Promise<void> {
 	await (await getDB()).put('annotations', clone(annotation));
 }
 
 async function deleteAnnotation(id: string): Promise<void> {
-	await (await getDB()).delete('annotations', id);
+	const db = await getDB();
+	const tx = db.transaction(['annotations', 'tombstones'], 'readwrite');
+	await tx
+		.objectStore('tombstones')
+		.put({ key: `${KIND_ANNOTATION}:${id}`, kind: KIND_ANNOTATION, d: id, deletedAt: Date.now() });
+	await tx.objectStore('annotations').delete(id);
+	await tx.done;
+}
+
+// ---- tombstones ----
+
+async function getAllTombstones(): Promise<Tombstone[]> {
+	return (await getDB()).getAll('tombstones');
+}
+
+async function saveTombstone(record: Tombstone): Promise<void> {
+	await (await getDB()).put('tombstones', clone(record));
+}
+
+async function getTombstone(kind: number, d: string): Promise<Tombstone | undefined> {
+	return (await getDB()).get('tombstones', `${kind}:${d}`);
 }
 
 // ---- chats ----
@@ -273,6 +318,7 @@ export const db = {
 		save: saveProgress
 	},
 	annotations: {
+		getAll: getAllAnnotations,
 		getByBook: getBookAnnotations,
 		save: saveAnnotation,
 		delete: deleteAnnotation
@@ -285,5 +331,10 @@ export const db = {
 	kv: {
 		get: getKV,
 		save: saveKV
+	},
+	tombstones: {
+		getAll: getAllTombstones,
+		get: getTombstone,
+		save: saveTombstone
 	}
 };

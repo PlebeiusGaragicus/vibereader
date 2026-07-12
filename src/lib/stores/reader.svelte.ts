@@ -50,7 +50,7 @@ async function open(record: Book): Promise<void> {
 			sectionLabel: epub.sectionLabelFor(loc.href)
 		};
 		percentage = loc.percentage;
-		selection.clear();
+		selection.clearActive();
 		if (book) library.noteProgress(book.sha256, loc.percentage);
 		saveProgress(loc.cfi, loc.percentage, loc.href);
 	});
@@ -90,6 +90,8 @@ function close(): void {
 	annotations.reset();
 	chat.reset();
 	selection.clear();
+	// Reading always dirties progress — refresh the sync dot for the library.
+	void import('./sync.svelte.js').then(({ sync }) => sync.checkDirty());
 	book = null;
 	toc = [];
 	location = null;

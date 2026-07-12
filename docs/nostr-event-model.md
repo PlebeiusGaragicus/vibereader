@@ -167,12 +167,33 @@ The 9802 is a derived snapshot — the 30104 stays canonical.
 - Restore path: a 30101 whose bytes are missing locally → fetch
   `https://<server>/<sha256>.epub`, re-verify the hash, store.
 
-## Open questions (resolve before/while building Phase D)
+## Resolved design decisions (2026-07, Phase D alignment)
 
-- Negentropy (NIP-77) vs. naive fetch for the sync pull — cyphertap carries a
-  client implementation, but naive `kinds+authors` REQ is likely enough at
-  personal-library scale.
-- Whether progress updates during a "backed-up" book's reading session should
-  prompt ("you have unsynced changes") or stay silent until the next explicit
-  sync.
-- Chat sync (30105/30106): whether transcripts ever belong on relays at all.
+- **Pull = naive REQ**: one `{"kinds":[30101,30102,30103,30104],"authors":[me]}`
+  fetch per sync. Addressable events mean the relay already holds only the
+  latest per `d`, so this is current state in one round trip. Negentropy
+  (NIP-77) stays a future optimization (cyphertap carries a client
+  implementation, currently unexported).
+- **Merge = last-write-wins** by `updatedAt` inside content (not relay
+  `created_at`), per record. Multiple relays may return stale versions of the
+  same addressable event — dedup by `(kind, d)` keeping newest `created_at`
+  before merging.
+- **Deletes propagate as tombstones**: deleting republishes the same
+  addressable event with content `{deleted: true, updatedAt}` (encrypted as
+  usual). LWW makes every device converge; the local DB keeps a tombstone row
+  so later pushes can't resurrect. A NIP-09 kind-5 (`["a","<kind>:<pk>:<d>"]`,
+  `["k","<kind>"]`) is also emitted for relays that honor it — bonus cleanup,
+  not load-bearing.
+- **Blobs upload raw** (no client-side encryption): the EPUB's sha256 stays
+  simultaneously identity and Blossom address, and identical files dedup
+  across users. **Consequence the UI must own**: anything backed up to a
+  public Blossom server is fetchable by anyone who can compute the book's
+  hash — fine for freely-licensed content, effectively public redistribution
+  for purchased ebooks. The first backup shows an explicit warning; file
+  backup is per-book and opt-in, never automatic.
+- **Sync UX**: one global "Sync" action (library header) pushes+pulls all
+  state events; per-book "Back up file" handles the Blossom blob separately.
+  An unsynced-changes dot on the Sync button, a summary toast after. Relay
+  and Blossom-server lists are user-editable in Settings (Blossom list also
+  published as kind 10063).
+- **Chat sync**: transcripts stay device-local; 30105/30106 remain reserved.

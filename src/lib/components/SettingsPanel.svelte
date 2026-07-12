@@ -6,9 +6,22 @@
 
 	// Local draft so typing doesn't half-apply; saved on submit.
 	let draft = $state({ ...settingsStore.settings.ai });
+	let relaysDraft = $state(settingsStore.settings.relays.join('\n'));
+	let blossomDraft = $state(settingsStore.settings.blossomServers.join('\n'));
+
+	function parseList(text: string, prefix: RegExp): string[] {
+		return text
+			.split('\n')
+			.map((line) => line.trim().replace(/\/$/, ''))
+			.filter((line) => prefix.test(line));
+	}
 
 	function save() {
-		settingsStore.save({ ai: { ...draft } });
+		settingsStore.save({
+			ai: { ...draft },
+			relays: parseList(relaysDraft, /^wss?:\/\//),
+			blossomServers: parseList(blossomDraft, /^https?:\/\//)
+		});
 		toast.success('Settings saved');
 		ui.settingsOpen = false;
 	}
@@ -72,6 +85,28 @@
 		<label class="mb-4 flex items-center gap-2 text-sm">
 			<input type="checkbox" class="accent-amber-500" bind:checked={draft.streaming} />
 			Stream responses
+		</label>
+
+		<h3 class="mb-1 text-sm font-medium">Sync</h3>
+		<p class="mb-3 text-xs text-zinc-500">
+			Relays hold your (encrypted) library state; Blossom servers hold backed-up book files.
+			Nothing is published without an explicit Sync / Back up / Share action.
+		</p>
+		<label class="mb-2 block">
+			<span class="mb-1 block text-xs font-medium text-zinc-500">Relays (one per line)</span>
+			<textarea
+				class="w-full resize-none rounded-lg border border-zinc-200 bg-transparent px-2.5 py-1.5 font-mono text-xs focus:outline-none dark:border-zinc-700"
+				rows="2"
+				bind:value={relaysDraft}
+			></textarea>
+		</label>
+		<label class="mb-4 block">
+			<span class="mb-1 block text-xs font-medium text-zinc-500">Blossom servers (one per line)</span>
+			<textarea
+				class="w-full resize-none rounded-lg border border-zinc-200 bg-transparent px-2.5 py-1.5 font-mono text-xs focus:outline-none dark:border-zinc-700"
+				rows="2"
+				bind:value={blossomDraft}
+			></textarea>
 		</label>
 
 		<button

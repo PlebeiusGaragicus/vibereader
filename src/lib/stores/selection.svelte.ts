@@ -27,6 +27,12 @@ export const selection = {
 		editingId = id;
 		editingRect = rect;
 	},
+	/** Page turns clear the text selection but keep an open annotation editor
+	 * (navigating TO an annotation relocates — killing the editor would make
+	 * the sidebar's edit flow impossible). */
+	clearActive() {
+		active = null;
+	},
 	clear() {
 		active = null;
 		editingId = null;

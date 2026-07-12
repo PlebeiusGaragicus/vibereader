@@ -3,9 +3,13 @@
 // mirror kind-30104 event content 1:1 (docs/nostr-event-model.md).
 
 import { nanoid } from 'nanoid';
+import { toast } from 'svelte-sonner';
+import { cyphertap } from 'cyphertap';
 import { db } from '$lib/db/index.js';
 import type { Annotation, HighlightColor } from '$lib/db/types.js';
 import * as epub from '$lib/epub/service.js';
+import { annotationDraft, highlightExport, isbnTags } from '$lib/nostr/events.js';
+import { settingsStore } from './settings.svelte.js';
 
 let items = $state<Annotation[]>([]);
 let bookSha: string | null = null;
@@ -81,6 +85,38 @@ async function goTo(id: string): Promise<void> {
 	if (anno) await epub.display(anno.cfiRange);
 }
 
+/**
+ * Flip an annotation public (or back to private) and publish immediately —
+ * the click IS the explicit relay action. Public = the same 30104 in
+ * plaintext with query tags; optionally also an immutable NIP-84 9802.
+ */
+async function setShared(id: string, shared: boolean, exportHighlight = false): Promise<void> {
+	const anno = items.find((a) => a.id === id);
+	if (!anno || !bookSha) return;
+	anno.shared = shared;
+	anno.updatedAt = Date.now();
+	await db.annotations.save($state.snapshot(anno) as Annotation);
+
+	try {
+		const book = await db.books.get(bookSha);
+		const draft = await annotationDraft($state.snapshot(anno) as Annotation);
+		if (shared) draft.tags.push(...isbnTags(book));
+		await cyphertap.publishEvent(
+			{ kind: draft.kind, content: draft.content, tags: [['d', draft.d], ...draft.tags] },
+			{ relays: settingsStore.settings.relays }
+		);
+		if (shared && exportHighlight && book) {
+			await cyphertap.publishEvent(highlightExport($state.snapshot(anno) as Annotation, book), {
+				relays: settingsStore.settings.relays
+			});
+		}
+		toast.success(shared ? 'Annotation published' : 'Annotation made private again');
+	} catch (err) {
+		console.error(err);
+		toast.error('Publish failed — the change is saved locally and will ride the next sync');
+	}
+}
+
 function reset(): void {
 	items = [];
 	bookSha = null;
@@ -100,5 +136,6 @@ export const annotations = {
 	update,
 	remove,
 	goTo,
+	setShared,
 	reset
 };

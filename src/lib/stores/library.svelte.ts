@@ -10,6 +10,7 @@ import { reader } from './reader.svelte.js';
 let books = $state<Book[]>([]);
 let coverUrls = $state<Record<string, string>>({});
 let progressBySha = $state<Record<string, number>>({});
+let missingFiles = $state<Record<string, boolean>>({});
 let importing = $state(false);
 let isInitialized = false;
 
@@ -25,11 +26,24 @@ async function loadCover(sha256: string): Promise<void> {
 async function init(): Promise<void> {
 	if (isInitialized) return;
 	isInitialized = true;
+	await refresh();
+}
+
+/** Re-read everything from the DB (after sync/restore pulls in changes). */
+async function refresh(): Promise<void> {
+	for (const url of Object.values(coverUrls)) URL.revokeObjectURL(url);
+	coverUrls = {};
+	missingFiles = {};
 	books = await db.books.getAll();
 	for (const record of await db.progress.getAll()) {
 		progressBySha[record.sha256] = record.percentage;
 	}
-	await Promise.all(books.map((b) => loadCover(b.sha256)));
+	await Promise.all(
+		books.map(async (b) => {
+			await loadCover(b.sha256);
+			if (!(await db.bookFiles.get(b.sha256))) missingFiles[b.sha256] = true;
+		})
+	);
 }
 
 async function importFiles(files: Iterable<File>): Promise<void> {
@@ -56,6 +70,7 @@ async function importFiles(files: Iterable<File>): Promise<void> {
 		}
 	} finally {
 		importing = false;
+		void import('./sync.svelte.js').then(({ sync }) => sync.checkDirty());
 	}
 }
 
@@ -68,11 +83,16 @@ async function deleteBook(sha256: string): Promise<void> {
 		delete coverUrls[sha256];
 	}
 	delete progressBySha[sha256];
+	void import('./sync.svelte.js').then(({ sync }) => sync.checkDirty());
 }
 
 async function open(sha256: string): Promise<void> {
 	const book = books.find((b) => b.sha256 === sha256);
 	if (!book) return;
+	if (missingFiles[sha256]) {
+		toast.info('This book’s file isn’t on this device — restore it from Blossom first.');
+		return;
+	}
 	try {
 		await reader.open(book);
 	} catch (err) {
@@ -92,6 +112,7 @@ function reset(): void {
 	books = [];
 	coverUrls = {};
 	progressBySha = {};
+	missingFiles = {};
 	importing = false;
 	isInitialized = false;
 }
@@ -106,10 +127,14 @@ export const library = {
 	get progressBySha() {
 		return progressBySha;
 	},
+	get missingFiles() {
+		return missingFiles;
+	},
 	get importing() {
 		return importing;
 	},
 	init,
+	refresh,
 	importFiles,
 	deleteBook,
 	open,

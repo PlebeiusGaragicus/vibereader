@@ -4,6 +4,7 @@
 import { closeUserDB, setCurrentUser } from '$lib/db/index.js';
 import { library } from './library.svelte.js';
 import { reader } from './reader.svelte.js';
+import { sync } from './sync.svelte.js';
 import { ui } from './ui.svelte.js';
 
 let activeNpub = $state<string | null>(null);
@@ -24,11 +25,13 @@ async function start(npub: string): Promise<void> {
 	}
 
 	await library.init();
+	await sync.checkDirty();
 }
 
 function stop(): void {
 	if (reader.book) reader.close();
 	library.reset();
+	sync.reset();
 	ui.reset();
 	closeUserDB();
 	activeNpub = null;
