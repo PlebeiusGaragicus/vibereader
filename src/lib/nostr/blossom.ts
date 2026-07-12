@@ -81,8 +81,13 @@ export async function uploadBlob(server: string, blob: Blob, sha256: string): Pr
 	}
 }
 
-/** Fetch a blob by hash, trying each server; re-verify the hash on receipt. */
-export async function downloadBlob(servers: string[], sha256: string, ext = ''): Promise<Blob> {
+/** Fetch a blob by hash, trying each server; re-verify the hash on receipt.
+ * Returns the server that actually delivered, so callers can record it. */
+export async function downloadBlob(
+	servers: string[],
+	sha256: string,
+	ext = ''
+): Promise<{ blob: Blob; server: string }> {
 	for (const server of servers) {
 		try {
 			const res = await fetch(serverUrl(server, `/${sha256}${ext}`));
@@ -90,7 +95,7 @@ export async function downloadBlob(servers: string[], sha256: string, ext = ''):
 			const blob = await res.blob();
 			const actual = await sha256Hex(await blob.arrayBuffer());
 			if (actual !== sha256) continue; // Corrupt or malicious — try the next server.
-			return blob;
+			return { blob, server };
 		} catch {
 			continue;
 		}

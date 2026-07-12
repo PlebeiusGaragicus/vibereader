@@ -22,6 +22,26 @@ function extractIsbn(identifier: string | undefined): string | undefined {
 	return match?.[1];
 }
 
+/** Pull the cover image out of EPUB bytes (throwaway epub.js instance) —
+ * used at import, and again after a Blossom restore, where the bytes are the
+ * only cover source we can rely on. */
+export async function extractCover(
+	buffer: ArrayBuffer
+): Promise<{ blob: Blob; mimeType: string } | undefined> {
+	const epub = ePub(buffer);
+	try {
+		await epub.ready;
+		const coverUrl = await epub.coverUrl();
+		if (!coverUrl) return undefined;
+		const blob = await (await fetch(coverUrl)).blob();
+		return { blob, mimeType: blob.type || 'image/jpeg' };
+	} catch {
+		return undefined; // No cover is fine.
+	} finally {
+		epub.destroy();
+	}
+}
+
 export async function importEpubFile(file: File): Promise<Book> {
 	const buffer = await file.arrayBuffer();
 	const sha256 = await sha256Hex(buffer);
@@ -29,22 +49,13 @@ export async function importEpubFile(file: File): Promise<Book> {
 	const existing = await db.books.get(sha256);
 	if (existing) throw new DuplicateBookError(existing);
 
-	// Throwaway instance just for metadata + cover; the reader opens its own.
+	const cover = await extractCover(buffer);
+
+	// Throwaway instance just for metadata; the reader opens its own.
 	const epub = ePub(buffer);
 	try {
 		await epub.ready;
 		const metadata = await epub.loaded.metadata;
-
-		let cover: { blob: Blob; mimeType: string } | undefined;
-		try {
-			const coverUrl = await epub.coverUrl();
-			if (coverUrl) {
-				const blob = await (await fetch(coverUrl)).blob();
-				cover = { blob, mimeType: blob.type || 'image/jpeg' };
-			}
-		} catch {
-			// No cover is fine.
-		}
 
 		const now = Date.now();
 		const book: Book = {

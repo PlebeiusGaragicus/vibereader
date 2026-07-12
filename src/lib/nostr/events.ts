@@ -44,10 +44,21 @@ async function sealed(payload: unknown): Promise<string> {
 export async function bookDraft(book: Book): Promise<AddressableDraft> {
 	const { sha256, ...content } = book;
 	void sha256;
+	const payload = { ...content, lastOpenedAt: undefined };
+	if (book.shared) {
+		// Public shelf: plaintext + query tags; stays addressable and editable.
+		return {
+			kind: KIND_BOOK,
+			d: book.sha256,
+			content: JSON.stringify(payload),
+			tags: isbnTags(book),
+			updatedAt: book.updatedAt
+		};
+	}
 	return {
 		kind: KIND_BOOK,
 		d: book.sha256,
-		content: await sealed({ ...content, lastOpenedAt: undefined }),
+		content: await sealed(payload),
 		tags: [],
 		updatedAt: book.updatedAt
 	};
@@ -132,7 +143,7 @@ export function highlightExport(anno: Annotation, book: Book): Partial<SimpleNos
 // ---- decode (relay event → parsed record) ----
 
 export type ParsedRemote =
-	| { kind: typeof KIND_BOOK; d: string; deleted: boolean; updatedAt: number; book?: Omit<Book, 'sha256'> }
+	| { kind: typeof KIND_BOOK; d: string; deleted: boolean; updatedAt: number; shared: boolean; book?: Omit<Book, 'sha256'> }
 	| { kind: typeof KIND_PROGRESS; d: string; deleted: boolean; updatedAt: number; progress?: Omit<ReadingProgress, 'sha256'> }
 	| { kind: typeof KIND_SETTINGS; d: string; deleted: boolean; updatedAt: number; reading?: ReadingSettings }
 	| { kind: typeof KIND_ANNOTATION; d: string; deleted: boolean; updatedAt: number; shared: boolean; annotation?: Omit<Annotation, 'id'> };
@@ -181,7 +192,12 @@ export async function parseRemote(event: SimpleNostrEvent): Promise<ParsedRemote
 
 	switch (event.kind) {
 		case KIND_BOOK:
-			return { kind: KIND_BOOK, ...base, book: deleted ? undefined : (payload as unknown as Omit<Book, 'sha256'>) };
+			return {
+				kind: KIND_BOOK,
+				...base,
+				shared,
+				book: deleted ? undefined : ({ ...payload, shared } as unknown as Omit<Book, 'sha256'>)
+			};
 		case KIND_PROGRESS:
 			return {
 				kind: KIND_PROGRESS,
@@ -208,4 +224,42 @@ export async function parseRemote(event: SimpleNostrEvent): Promise<ParsedRemote
 		default:
 			return null;
 	}
+}
+
+// ---- decode (someone ELSE's events — browse) ----
+
+export type ParsedForeign =
+	| { kind: typeof KIND_BOOK; sha256: string; book: Omit<Book, 'sha256'> }
+	| { kind: typeof KIND_ANNOTATION; id: string; annotation: Omit<Annotation, 'id'> };
+
+/**
+ * Parse another user's event: plaintext only (their ciphertext is noise to
+ * us — never attempt decryption), tombstones and garbage → null.
+ */
+export function parseForeign(event: SimpleNostrEvent): ParsedForeign | null {
+	const d = dTagOf(event);
+	if (d === undefined || !event.content.startsWith('{')) return null;
+
+	let payload: Record<string, unknown>;
+	try {
+		payload = JSON.parse(event.content) as Record<string, unknown>;
+	} catch {
+		return null;
+	}
+	if (payload.deleted === true) return null;
+
+	if (event.kind === KIND_BOOK) {
+		if (typeof payload.title !== 'string') return null;
+		return { kind: KIND_BOOK, sha256: d, book: payload as unknown as Omit<Book, 'sha256'> };
+	}
+	if (event.kind === KIND_ANNOTATION) {
+		const { book, ...rest } = payload as { book: string } & Record<string, unknown>;
+		if (typeof book !== 'string' || typeof payload.quote !== 'string') return null;
+		return {
+			kind: KIND_ANNOTATION,
+			id: d,
+			annotation: { sha256: book, ...rest } as unknown as Omit<Annotation, 'id'>
+		};
+	}
+	return null;
 }

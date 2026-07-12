@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { Globe, StickyNote } from '@lucide/svelte';
-	import { HIGHLIGHT_COLORS } from '$lib/epub/service.js';
+	import { Eye, EyeOff, Globe, Loader2, StickyNote, Users } from '@lucide/svelte';
+	import { HIGHLIGHT_COLORS, display } from '$lib/epub/service.js';
 	import { annotations } from '$lib/stores/annotations.svelte.js';
+	import { foreignAnnotations } from '$lib/stores/foreignAnnotations.svelte.js';
+	import { reader } from '$lib/stores/reader.svelte.js';
 	import { selection } from '$lib/stores/selection.svelte.js';
 
 	let sharingId = $state<string | null>(null);
@@ -102,4 +104,75 @@
 			{/each}
 		</div>
 	{/if}
+
+	<!-- Multi-perspective reading: other people's shared highlights on this
+	     exact file (same sha256 ⇒ same CFIs). Explicit fetch, read-only. -->
+	<div class="mt-6 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+		<h3 class="mb-2 flex items-center gap-1.5 text-sm font-semibold text-zinc-500">
+			<Users class="size-4" /> Other readers
+		</h3>
+		{#if !foreignAnnotations.loaded}
+			<button
+				class="flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+				disabled={foreignAnnotations.loading}
+				onclick={() => {
+					if (reader.book) void foreignAnnotations.fetchForBook(reader.book.sha256);
+				}}
+			>
+				{#if foreignAnnotations.loading}
+					<Loader2 class="size-3.5 animate-spin" />
+				{:else}
+					<Users class="size-3.5" />
+				{/if}
+				Load readers' highlights
+			</button>
+		{:else if foreignAnnotations.readers.length === 0}
+			<p class="py-2 text-center text-xs text-zinc-500">
+				No one else has shared highlights on this book (on your relays).
+			</p>
+		{:else}
+			<div class="flex flex-col gap-2">
+				{#each foreignAnnotations.readers as fr (fr.hex)}
+					<div class="rounded-lg border border-zinc-200 p-2 dark:border-zinc-800">
+						<div class="flex items-center gap-2">
+							<span class="min-w-0 flex-1 truncate text-xs font-medium">
+								{fr.name ?? `${fr.hex.slice(0, 8)}…`}
+							</span>
+							<span class="shrink-0 text-xs text-zinc-500">{fr.annotations.length}</span>
+							<button
+								class="shrink-0 rounded p-1 {fr.shown
+									? 'text-sky-500'
+									: 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}"
+								title={fr.shown ? 'Hide highlights' : 'Show highlights'}
+								onclick={() => foreignAnnotations.toggle(fr.hex)}
+							>
+								{#if fr.shown}
+									<Eye class="size-3.5" />
+								{:else}
+									<EyeOff class="size-3.5" />
+								{/if}
+							</button>
+						</div>
+						{#if fr.shown}
+							<div class="mt-2 flex flex-col gap-1.5">
+								{#each fr.annotations as anno (anno.id)}
+									<button
+										class="w-full rounded p-1 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+										onclick={() => void display(anno.cfiRange)}
+									>
+										<p class="line-clamp-2 text-xs text-zinc-600 dark:text-zinc-400">
+											“{anno.quote}”
+										</p>
+										{#if anno.note}
+											<p class="mt-0.5 line-clamp-1 text-xs text-zinc-500 italic">{anno.note}</p>
+										{/if}
+									</button>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
 </aside>

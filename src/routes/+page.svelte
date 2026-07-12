@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { Cyphertap, cyphertap } from 'cyphertap';
-	import { BookOpen, RefreshCw, Settings } from '@lucide/svelte';
+	import { BookOpen, RefreshCw, Settings, Users } from '@lucide/svelte';
 	import SettingsPanel from '$lib/components/SettingsPanel.svelte';
+	import BrowseView from '$lib/components/browse/BrowseView.svelte';
+	import GhostView from '$lib/components/library/GhostView.svelte';
 	import LibraryView from '$lib/components/library/LibraryView.svelte';
 	import ReaderView from '$lib/components/reader/ReaderView.svelte';
 	import { RELAYS } from '$lib/relays.js';
+	import { browse } from '$lib/stores/browse.svelte.js';
 	import { library } from '$lib/stores/library.svelte.js';
 	import { session } from '$lib/stores/session.svelte.js';
 	import { sync } from '$lib/stores/sync.svelte.js';
@@ -36,6 +39,16 @@
 					Docs
 				</a>
 				{#if cyphertap.isLoggedIn}
+					<button
+						class="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+						title="Browse other libraries"
+						onclick={() => {
+							browse.open();
+							ui.view = 'browse';
+						}}
+					>
+						<Users class="size-4" />
+					</button>
 					<button
 						class="relative rounded p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-800"
 						title={sync.dirty ? 'Sync (unsynced changes)' : 'Sync'}
@@ -70,6 +83,10 @@
 					progress live in this browser — nothing leaves it unless you say so.
 				</p>
 			</div>
+		{:else if ui.view === 'ghost' && ui.ghostSha}
+			<GhostView sha256={ui.ghostSha} />
+		{:else if ui.view === 'browse'}
+			<BrowseView />
 		{:else if ui.view === 'library' && library}
 			<LibraryView />
 		{:else}

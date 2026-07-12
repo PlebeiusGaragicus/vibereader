@@ -34,7 +34,7 @@ registry: 30079–30165 has no assignments).
 
 | Kind | Entity | `d` tag | Encryption |
 |---|---|---|---|
-| 30101 | Book metadata | `{epub-sha256}` | NIP-44 to self |
+| 30101 | Book metadata | `{epub-sha256}` | NIP-44 to self, **or plaintext when shared** |
 | 30102 | Reading progress | `{epub-sha256}` | NIP-44 to self |
 | 30103 | App settings | `vibereader` | NIP-44 to self |
 | 30104 | Annotation (unified) | `anno-{id}` | NIP-44 to self, **or plaintext when shared** |
@@ -70,6 +70,34 @@ IndexedDB record minus redundant keys.
   }
 }
 ```
+
+**Shared (public shelf):** same mechanism as shared annotations (design
+rule 4) — the *same* event, same `d`, republished with plaintext content
+plus NIP-73 ISBN tags when known:
+
+```jsonc
+{
+  "kind": 30101,
+  "tags": [
+    ["d", "<epub-sha256>"],
+    ["i", "isbn:9780765382030"],       // NIP-73, when known
+    ["k", "isbn"]
+  ],
+  "content": "{ …same JSON, unencrypted… }"
+}
+```
+
+Semantics: this is the user's opt-in **public shelf**. Title, creator,
+publisher, language, ISBN, description, and fileSize become public — and so
+does the `blossom` pointer if present, which makes the book *file* fetchable
+by anyone (public-by-hash; the deliberate "borrow from a friend's shelf"
+path — the share confirm must say so). `lastOpenedAt` is stripped as always;
+reading progress (30102) never gets a plaintext variant. Unshare =
+republish encrypted, drop the tags. Browse queries this enables:
+
+- Someone's public shelf: `{"kinds":[30101,30104],"authors":["<pk>"]}`,
+  keeping only plaintext-parseable events.
+- Readers of a book: `{"kinds":[30104],"#x":["<sha256>"]}` (already below).
 
 ### 30102 — Reading progress
 

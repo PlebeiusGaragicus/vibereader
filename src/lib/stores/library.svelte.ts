@@ -6,6 +6,7 @@ import { db } from '$lib/db/index.js';
 import type { Book } from '$lib/db/types.js';
 import { DuplicateBookError, importEpubFile } from '$lib/epub/import.js';
 import { reader } from './reader.svelte.js';
+import { ui } from './ui.svelte.js';
 
 let books = $state<Book[]>([]);
 let coverUrls = $state<Record<string, string>>({});
@@ -90,7 +91,9 @@ async function open(sha256: string): Promise<void> {
 	const book = books.find((b) => b.sha256 === sha256);
 	if (!book) return;
 	if (missingFiles[sha256]) {
-		toast.info('This book’s file isn’t on this device — restore it from Blossom first.');
+		// Ghost book — no file bytes, but metadata + annotations are here.
+		ui.ghostSha = sha256;
+		ui.view = 'ghost';
 		return;
 	}
 	try {

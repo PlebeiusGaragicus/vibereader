@@ -9,6 +9,7 @@ import type { TocEntry } from '$lib/epub/service.js';
 import { debounce } from '$lib/utils.js';
 import { annotations } from './annotations.svelte.js';
 import { chat } from './chat.svelte.js';
+import { foreignAnnotations } from './foreignAnnotations.svelte.js';
 import { library } from './library.svelte.js';
 import { selection } from './selection.svelte.js';
 import { settingsStore } from './settings.svelte.js';
@@ -88,6 +89,7 @@ function close(): void {
 	}
 	epub.destroy();
 	annotations.reset();
+	foreignAnnotations.reset();
 	chat.reset();
 	selection.clear();
 	// Reading always dirties progress — refresh the sync dot for the library.

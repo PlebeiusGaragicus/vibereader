@@ -109,6 +109,13 @@ Keep test EPUBs out of git.
   (plaintext 30104 + optional 9802 export). Contract:
   `docs/nostr-event-model.md`. Verified: two-profile round trip incl.
   tombstone propagation and Blossom restore.
+- **E (done)** — social reading (proposals.md #5): ghost books (read-only
+  annotation view for metadata-only books), public shelf (shared plaintext
+  30101 — protocol addition in `docs/nostr-event-model.md`), Browse view
+  (npub input + follows picker, download-from-friend via their Blossom
+  pointer, readers-of-book `#x` query), multi-perspective reading (foreign
+  highlights as toggleable dashed underlines, read-only, session-only).
+  Verified two-profile: share → browse → download → overlay round trip.
 - **Next (accepted)**: foliate-js renderer migration + mobile polish — see
   `proposals.md` #2/#3 for the plan (epub.js is abandoned; the swap is
   contained to `src/lib/epub/`, and CFIs/sha256 identity make data carry

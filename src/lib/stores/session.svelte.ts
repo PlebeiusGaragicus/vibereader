@@ -2,6 +2,7 @@
 // database and the per-user stores. +page.svelte's $effect drives start/stop.
 
 import { closeUserDB, setCurrentUser } from '$lib/db/index.js';
+import { browse } from './browse.svelte.js';
 import { library } from './library.svelte.js';
 import { reader } from './reader.svelte.js';
 import { sync } from './sync.svelte.js';
@@ -32,6 +33,7 @@ function stop(): void {
 	if (reader.book) reader.close();
 	library.reset();
 	sync.reset();
+	browse.reset();
 	ui.reset();
 	closeUserDB();
 	activeNpub = null;

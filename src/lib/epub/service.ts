@@ -250,6 +250,27 @@ export function removeAnnotation(anno: Annotation): void {
 	rendition.annotations.remove(anno.cfiRange, anno.color ? 'highlight' : 'underline');
 }
 
+// Other readers' shared highlights: dashed sky underline — read-only marks,
+// visually distinct from own highlights (fill) and own notes (solid red).
+const FOREIGN_UNDERLINE = 'rgb(14, 165, 233)';
+
+export function applyForeignAnnotation(anno: { id: string; cfiRange: string }): void {
+	if (!rendition || !hasRendered) return; // Pre-render add crashes epub.js.
+	rendition.annotations.add(
+		'underline',
+		anno.cfiRange,
+		{ id: anno.id, foreign: true },
+		undefined,
+		'vr-foreign-underline',
+		{ stroke: FOREIGN_UNDERLINE, 'stroke-opacity': '0.8', 'stroke-dasharray': '3 2' }
+	);
+}
+
+export function removeForeignAnnotation(anno: { cfiRange: string }): void {
+	if (!rendition) return;
+	rendition.annotations.remove(anno.cfiRange, 'underline');
+}
+
 export function clearSelection(): void {
 	// epub.js keeps the selection inside the section iframe.
 	if (!rendition) return;

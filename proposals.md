@@ -217,3 +217,79 @@ base64 quirk — deployed servers accept STANDARD base64 auth, not the
 spec's base64url (`blossom.ts` sends standard; nak agrees). Test with
 `nak blossom upload --server https://blossom.abvstudio.net <file>` before
 pointing the app at it.
+
+## 5. Ghost books + browsing other libraries (social reading)
+
+**Status: ACCEPTED + implemented 2026-07-12 (all three phases; see PLAN.md
+for the implementation record until it lands in a commit).** Origin: VibeReaderTwo's
+`docs/technical/specification.md` §3.5 ("Social & Collaborative Features" —
+discovery panel, browse someone's library, read-only annotation views). All
+of it was unimplemented checkboxes there; the concepts fit the rebuilt event
+model far better than the original, because sha256-as-book-identity makes
+cross-user matching trivial. Three phases, each independently shippable.
+
+### Phase A — Ghost books (no protocol change, small)
+
+A **ghost book** is a book whose metadata + annotations are on this device
+but whose file bytes are not. Sync already produces them (30101/30104 pull
+regardless of file presence) — the app just refuses to do anything useful
+with one: today, opening it toasts "restore first."
+
+Change: opening a ghost book renders a read-only annotations view instead of
+the reader — cover (if cached), title/author header, all highlights and
+notes spine-sorted with quotes and colors, restore CTA at top. Everything
+needed is already local: `compareCfi` is file-independent (bare `EpubCFI`),
+annotations carry their own quotes. You can reread every highlight of a
+16 MB book you never downloaded to this phone.
+
+Implementation: `ui.view` gains a `ghost` state (or `reader` branches on
+file presence); one new component reusing the annotation-list rendering;
+`library.open()` routes to it when `missingFiles[sha]`.
+
+### Phase B — Public shelf + browse someone's library (protocol addition)
+
+Privacy rule 2 means a library is invisible by default — 30101 content is
+NIP-44 to self. Browsing therefore shows exactly what a user has **chosen
+to share**. Today only annotations are shareable (plaintext 30104); books
+need the same treatment:
+
+- **Protocol change (`docs/nostr-event-model.md`)**: a shared 30101 — the
+  same event, same `d`, republished with plaintext content plus the same
+  `i`/`k` ISBN tags as shared 30104s. Mirrors design rule 4 exactly; stays
+  addressable/editable/unshareable. `Book.shared?: boolean` field; the push
+  codec branches like `annotationDraft` already does. A shared 30101 that
+  records `blossom.servers` makes the book itself fetchable by friends
+  (public-by-hash) — the existing backup warning already covers this, and
+  it becomes the "borrow from a friend's shelf" path: import-by-download
+  with sha256 verification.
+- **Browse UI** (library header → "Browse"): enter an npub, or pick from
+  follows — `cyphertap.getFollows()` exists (kind 3), profile names via one
+  `fetchEvents({kinds:[0], authors})`. Fetch
+  `{kinds:[30101,30104], authors:[them]}`, keep only plaintext-parseable
+  events (their encrypted ones are noise to us), group 30104s by `x` tag.
+  Shelf view: their shared books (title/creator from plaintext 30101, cover
+  via `blossom.coverSha256` when present) + annotation counts; sha256 match
+  against my library shows "you have this book." Read-only, session-memory
+  only — nothing foreign enters the per-npub DB, nothing is published by
+  browsing (the fetch itself is behind the explicit Browse action).
+- **Readers of this book**: from any book I own, the one-query the event
+  model was designed for — `{kinds:[30104], "#x":[sha256]}` — lists
+  everyone who shared annotations on it.
+
+Known limitation (accepted for v1): we query only our configured relays, so
+we see what they published where we look. relay.primal.net in the defaults
+gives decent reach; a NIP-65 lookup of the target's write relays (cyphertap
+already reads kind 10002 internally) is the future upgrade, not a blocker.
+
+### Phase C — Multi-perspective reading (needs B)
+
+When reading a book someone I browsed also shared annotations on, overlay
+their highlights in my reader — read-only, visually distinct (underline vs
+fill), toggleable per person in the annotations sidebar. This is
+VibeReaderTwo's "multi-perspective reading" and the payoff feature; CFIs
+resolve because same sha256 = same file = same CFIs. Defer popular-highlight
+aggregation (Kindle-style counts) until real usage exists.
+
+Sequencing: A → B → C, each shippable alone. A is pure client; B is the
+protocol addition + browse surface; C builds on B's data with reader-side
+rendering.

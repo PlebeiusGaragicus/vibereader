@@ -18,6 +18,8 @@ export interface Book {
 	fileSize: number;
 	/** Blossom servers holding the (raw, public-by-hash) EPUB + cover. */
 	blossom?: { servers: string[]; coverSha256?: string };
+	/** On the user's public shelf: 30101 published as plaintext (still editable). */
+	shared?: boolean;
 	addedAt: number;
 	updatedAt: number;
 	lastOpenedAt?: number;
