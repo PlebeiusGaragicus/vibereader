@@ -13,6 +13,14 @@ body {
 
 body {
 	@apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+	/* Installed-PWA mode on iOS draws edge-to-edge (viewport-fit=cover +
+	   black-translucent status bar); inset the whole app past the status
+	   bar / dynamic island, home indicator, and landscape notch. The body
+	   background bleeds into those zones, which is the intended look. */
+	padding-top: env(safe-area-inset-top);
+	padding-right: env(safe-area-inset-right);
+	padding-bottom: env(safe-area-inset-bottom);
+	padding-left: env(safe-area-inset-left);
 }
 
 :focus-visible {
