@@ -26,7 +26,7 @@ git clone --recurse-submodules …   # plain clone breaks workspace:* resolution
 pnpm install
 pnpm dev                            # .env (gitignored) pre-fills AI settings
 pnpm check                          # svelte-check, CI-enforced
-BASE_PATH=/VibeReader pnpm build && pnpm preview   # what Pages serves
+BASE_PATH=/vibereader pnpm build && pnpm preview   # what Pages serves
 pip install -r docs-requirements.txt && mkdocs serve   # docs site
 ```
 

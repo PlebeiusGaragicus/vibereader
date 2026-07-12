@@ -1,8 +1,8 @@
 site_name: VibeReader
 site_description: A local-first EPUB reader built as a nostr-ecosystem app
-site_url: https://plebeiusgaragicus.github.io/VibeReader/docs/
-repo_url: https://github.com/PlebeiusGaragicus/VibeReader
-repo_name: VibeReader
+site_url: https://plebeiusgaragicus.github.io/vibereader/docs/
+repo_url: https://github.com/PlebeiusGaragicus/vibereader
+repo_name: vibereader
 
 theme:
   name: material

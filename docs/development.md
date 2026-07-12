@@ -3,8 +3,8 @@
 ## Clone & run
 
 ```sh
-git clone --recurse-submodules https://github.com/PlebeiusGaragicus/VibeReader
-cd VibeReader
+git clone --recurse-submodules https://github.com/PlebeiusGaragicus/vibereader
+cd vibereader
 pnpm install
 pnpm dev
 ```
@@ -22,7 +22,7 @@ in dev.
 ```sh
 pnpm check                          # svelte-check (CI-enforced)
 pnpm check:lib                      # cyphertap's own check
-BASE_PATH=/VibeReader pnpm build && pnpm preview   # what CI/Pages runs
+BASE_PATH=/vibereader pnpm build && pnpm preview   # what CI/Pages runs
 ```
 
 Always test against the `BASE_PATH` build before calling UI work done —
@@ -36,7 +36,7 @@ mkdocs serve                        # http://127.0.0.1:8000
 ```
 
 CI builds the docs with `mkdocs build --strict` into `build/docs/`, so the
-deployed app serves them at `/VibeReader/docs/`.
+deployed app serves them at `/vibereader/docs/`.
 
 ## Submodule rules (cyphertap)
 

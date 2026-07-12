@@ -24,8 +24,8 @@ Docs (philosophy, architecture, the nostr event model): `docs/`, published at
 ## Clone & run
 
 ```sh
-git clone --recurse-submodules https://github.com/PlebeiusGaragicus/VibeReader
-cd VibeReader
+git clone --recurse-submodules https://github.com/PlebeiusGaragicus/vibereader
+cd vibereader
 pnpm install
 pnpm dev
 ```
@@ -36,7 +36,7 @@ empty and `pnpm install` fails resolving `workspace:*`.
 
 ```sh
 pnpm check                          # svelte-check
-BASE_PATH=/VibeReader pnpm build && pnpm preview   # what CI/Pages runs
+BASE_PATH=/vibereader pnpm build && pnpm preview   # what CI/Pages runs
 ```
 
 Status: scaffold live (identity, per-npub storage, docs site); reader core →

@@ -32,7 +32,7 @@ export default defineConfig({
 			// 404.html as the SPA fallback (how Pages routes unknown paths).
 			adapter: adapter({ fallback: '404.html' }),
 			paths: {
-				// Set by the Pages deploy workflow, e.g. /VibeReader
+				// Set by the Pages deploy workflow, e.g. /vibereader
 				base: (process.env.BASE_PATH as `/${string}` | undefined) || ''
 			}
 		})
