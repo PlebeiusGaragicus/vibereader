@@ -39,5 +39,6 @@ pnpm check                          # svelte-check
 BASE_PATH=/vibereader pnpm build && pnpm preview   # what CI/Pages runs
 ```
 
-Status: scaffold live (identity, per-npub storage, docs site); reader core →
-AI chat → explicit sync landing in that order.
+Status: v1 feature-complete — reader + annotations, BYO-endpoint AI chat, and
+explicit relay sync / Blossom backup / annotation sharing are all live.
+Payments (bitcoin-only, on the `// PAYMENTS:` seam) are deliberately deferred.
