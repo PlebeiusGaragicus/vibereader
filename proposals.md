@@ -77,7 +77,69 @@ goal.
 
 ---
 
-## 2. Self-hosted Blossom server (candidate)
+## 2. foliate-js migration (renderer swap)
+
+**Status: ACCEPTED 2026-07-12 — next priority, alongside mobile polish.**
+
+epub.js (`epubjs@0.3.93`) is effectively abandoned: last release 2023, no
+active maintainer, CJS with a legacy dependency chain, and the quirk list we
+already design around (ArrayBuffer-only loading, pre-render annotation
+crashes, no click coordinates from `markClicked`, expensive locations
+generation). It works today; it will only rot. The successor is
+**foliate-js** (johnfactotum/foliate-js, MIT) — zero dependencies, modern
+ESM, actively maintained, own spec-correct EPUB CFI implementation, built-in
+annotation overlay and paginator, and it reads MOBI/KF8/FB2/CBZ too (free
+format expansion). Readest is built on it. The heavyweight alternative
+(Readium/Thorium) was considered and rejected as an oversized commitment.
+
+**Why the swap is cheap by design:**
+
+- All epub.js contact is isolated in `src/lib/epub/service.ts` +
+  `import.ts` — the rest of the app speaks our own vocabulary (`openBook`,
+  `applyAnnotation`, `onSelection`, `compareCfi`, …). The migration is a
+  two-file rewrite against an existing contract, not an app rewrite.
+- **No data migration**: book identity is the file's sha256
+  (renderer-independent) and annotation positions are standard EPUB CFI
+  strings, which foliate-js resolves natively. Every annotation already in
+  IndexedDB or on relays keeps working.
+
+**Migration plan:**
+
+1. **Vendor foliate-js** (it ships as source ESM modules, no npm package) —
+   same pattern as cyphertap's vendored negentropy. Pin a commit; record it.
+2. **Spike**: reimplement `service.ts` on foliate-js's `View` /paginator/
+   overlayer against the current function signatures; `import.ts` metadata +
+   cover extraction next. Acceptance = the existing Phase B playwright suite
+   passes unchanged (import, paginate, themes, resume, annotate in two
+   chapters, spine-order sidebar, reload persistence).
+3. **Behavior checks specific to the swap**: CFI compatibility against
+   annotations created under epub.js (open an old library); locations/
+   percentage model (foliate-js computes progress differently — the
+   `locations` cache table may become obsolete; keep the store, change the
+   payload); selection/annotation-click coordinate pipeline (foliate-js
+   gives real events — should *delete* our iframe-rect workarounds).
+4. **Cleanup**: drop `epubjs` from package.json and `optimizeDeps`, remove
+   epub.js-specific gotchas from CLAUDE.md, note the format expansion
+   (accept `.mobi`/`.fb2`/`.cbz` in import — sha256 identity works for any
+   file type; kind 30101 is already format-agnostic).
+
+**Risks**: foliate-js's API is less documented than epub.js (read Readest's
+usage as the reference consumer); vendoring means we own updates (pin +
+periodic bump, upstream-first if we need patches).
+
+## 3. Mobile polish (paired with the renderer swap)
+
+**Status: ACCEPTED 2026-07-12.** Scope sketch: touch/swipe page turns,
+responsive layout for the sidebars (drawer-ify TOC/annotations/chat on small
+screens), selection UX on touch (long-press), viewport/safe-area handling,
+and PWA installability (manifest + icons — shipped 2026-07-12; see
+`static/manifest.webmanifest`). **Known iOS caveat to design for**: a
+Home-Screen-installed PWA gets its own storage partition on iOS — IndexedDB
+does NOT carry over from the Safari-tab session, so a user who installs the
+app starts with an empty library. Relay sync + Blossom restore is the
+built-in answer (log in, Sync, restore) — the install flow should say so.
+
+## 4. Self-hosted Blossom server (candidate)
 
 **Status: idea, 2026-07-12.** Surfaced during Phase D: of seven public
 Blossom servers probed, only nostr.download is both browser-CORS-open and
